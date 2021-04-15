@@ -5,13 +5,28 @@ from typing import List
 # requested_direction - направление, куда вызвали лифт
 MoveRequest = namedtuple('MoveRequest', ['floor', 'requested_direction'])
 
+# Для информативности направлений движения
+REQUEST_DOWN = False
+REQUEST_UP = True
+
+DIRECTION_DOWN = -1
+DIRECTION_STOP = 0
+DIRECTION_UP = 1
+
 
 class Elevator:
-    def __init__(
-        self, tonnage: int, floors_count: int, current_direction: int, 
-        current_weight: int, is_light_on: bool, is_smoked: bool, requests: List[MoveRequest],
-        is_communication_on: bool, is_doors_open: bool, 
-        is_empty: bool, current_floor: int
+    def __init__( self,
+        tonnage: int,
+        floors_count: int,
+        current_direction: int,
+        current_weight: int,
+        requests: List[MoveRequest] = list(),
+        current_floor: int = 0,
+        is_communication_on: bool = False,
+        is_doors_open: bool = False, 
+        is_empty: bool = True,
+        is_light_on: bool = False,
+        is_smoked: bool = False, 
     ):
         """
         current_direction: int - неинформативно, лучше сделать Enum
@@ -88,4 +103,3 @@ class Elevator:
         Реакция на изменение параметров датчиков
         """
         pass
-
