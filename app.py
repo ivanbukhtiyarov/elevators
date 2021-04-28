@@ -1,0 +1,131 @@
+""" Behold! The CLI (Compact Lift sImulation) module.
+The greatest command-line elevator simulator you have seen
+"""
+from typing import Optional
+
+from src.elevator import Elevator
+from src.command_processor import Command, process
+
+
+def is_source_valid(source: str) -> bool:
+    """ Source validation """
+    # TODO: source must be one of allowed values from ri-04-01
+    return True
+
+
+def is_action_valid(action: str) -> bool:
+    """ Action validation """
+    # TODO: action must be one of allowed values from ri-04-01
+    return True
+
+
+def is_value_valid(action: str, value: str) -> bool:
+    """ Value validation """
+    # TODO: value must be suitable for the action
+    return True
+
+
+def is_command_valid(command: Command):
+    return is_source_valid(command.source) and is_action_valid(command.action) and \
+           (is_value_valid(command.action, command.value) if command.value else True)
+
+
+def print_greeting() -> None:
+    """ Say hello to user """
+    print('Welcome to our CLI (Compact Lift sImulation) module')
+    print('Feel free to explore it! Try typing <help> to learn some syntax')
+
+
+def process_command(command: Command, elevator: Elevator):
+    """ Perform actions based on user's command """
+    if is_command_valid(command):
+        process(command, elevator)
+    else:
+        print('Sorry, the command is not valid')
+
+
+def print_help() -> None:
+    """ Basic non-interactive help """
+    print("""Currently the following commands are supported:
+    help - print this message;
+    start - start simulation;
+    stop - stop simulation;
+    exit - close the program;
+    <source> <action> [<value>] - give simulation command""")
+
+
+def initialize_elevator() -> Elevator:
+    print('First of all, we need to define some basic elevator parameters')
+    tonnage = int(input('Please, define tonnage of the elevator in kilograms\n'))
+    floors_count = int(input('Please, define amount of floors in the building\n'))
+    print('Setting up the elevator...')
+    elevator = Elevator(tonnage=tonnage, floors_count=floors_count, current_direction=0, current_weight=0,
+                        is_light_on=False, is_smoked=False, requests=[], is_communication_on=False, is_doors_open=False,
+                        is_empty=True, current_floor=1)
+    print('The elevator is set up and ready to go. Have fun!')
+    return elevator
+
+
+def is_start_query(split_input: list) -> bool:
+    return len(split_input) == 1 and split_input[0] == 'start'
+
+
+def is_stop_query(split_input: list) -> bool:
+    return len(split_input) == 1 and split_input[0] == 'stop'
+
+
+def is_help_query(split_input: list) -> bool:
+    return len(split_input) == 1 and split_input[0] == 'help'
+
+
+def is_command_query(split_input: list) -> bool:
+    return 1 < len(split_input) < 4
+
+
+def is_exit_query(split_input: list) -> bool:
+    return len(split_input) == 1 and split_input[0] == 'exit'
+
+
+def start_simulation():
+    """ Actions before simulation start """
+    print('Simulation started')
+
+
+def stop_simulation():
+    """ Actions after simulation stop """
+    print('Simulation stopped')
+
+
+def main():
+    # TODO: automatic (random) simulation mode
+    print_greeting()
+    elevator = initialize_elevator()
+    is_simulation_active = False
+
+    while True:
+        split_input = input().split()
+        if is_start_query(split_input):
+            start_simulation()
+            is_simulation_active = True
+        elif is_stop_query(split_input):
+            stop_simulation()
+            is_simulation_active = False
+        elif is_help_query(split_input):
+            print_help()
+        elif is_command_query(split_input):
+            if is_simulation_active:
+                process_command(Command(*split_input), elevator)
+            else:
+                print('Simulation is not active')
+        elif is_exit_query(split_input):
+            confirmation_answer = input('Do you want to close the program (Y/n)\n')
+            while confirmation_answer != 'Y' and confirmation_answer != 'n':
+                confirmation_answer = input('Please, type "Y" or "n"\n')
+            if confirmation_answer == 'Y':
+                if is_simulation_active:
+                    stop_simulation()
+                return
+
+
+if __name__ == '__main__':
+    main()
