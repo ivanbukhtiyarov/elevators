@@ -1,16 +1,19 @@
-from collections import namedtuple
+import attr
 from typing import List
 
 
 # requested_direction - направление, куда вызвали лифт
-MoveRequest = namedtuple('MoveRequest', ['floor', 'requested_direction'])
+@attr.s
+class MoveRequest:
+    floor = attr.ib()
+    requested_direction = attr.ib()
 
 
 class Elevator:
     def __init__(
         self, tonnage: int, floors_count: int, current_direction: int, 
         current_weight: int, is_light_on: bool, is_smoked: bool, requests: List[MoveRequest],
-        is_communication_on: bool, is_doors_open: bool, 
+        is_communication_on: bool, is_doors_open: bool, is_doors_blocked: bool,
         is_empty: bool, current_floor: int
     ):
         """
@@ -20,13 +23,14 @@ class Elevator:
         """
         self.tonnage = tonnage
         self.floors_count = floors_count
-        self.current_durection = current_direction
+        self.current_direction = current_direction
         self.current_weight = current_weight
         self.is_light_on = is_light_on
-        self.is_smoked = is_smoked,
+        self.is_smoked = is_smoked
         self.requests: List[MoveRequest] = requests
         self.is_communication_on = is_communication_on
         self.is_doors_open = is_doors_open
+        self.is_doors_blocked = is_doors_blocked
         self.is_empty = is_empty
         self.current_floor = current_floor
 
@@ -65,7 +69,7 @@ class Elevator:
         с помощью которого можно отбирать ближайший запрос
         по направлению движения
         """
-        is_moving_up = (self.current_durection > 0) # Костыль из-за несоответствия типов
+        is_moving_up = (self.current_direction > 0) # Костыль из-за несоответствия типов
         first_request = self.requests.pop(0)
         if first_request.requested_direction == is_moving_up: # bool мешает читаемость кода (см. прим. про Enum в __init__)
             self.move_to_floor(first_request.floor)
@@ -77,9 +81,6 @@ class Elevator:
     def turn_smoke_off(self):
         self.is_smoked = False
 
-    def is_door_blocked(self):
-        pass
-
     def call_dispatcher(self):
         self.is_communication_on = True
 
@@ -88,4 +89,3 @@ class Elevator:
         Реакция на изменение параметров датчиков
         """
         pass
-
