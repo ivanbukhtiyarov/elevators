@@ -1,17 +1,18 @@
-from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtWidgets import QApplication
+from src.gui import ElevatorsWindow
 
 import sys
 
 
 def application():
     app = QApplication(sys.argv)
-    window = QMainWindow()
 
-    window.setWindowTitle("Лифты")
-    window.setGeometry(300, 250, 600, 500)
-
+    window = ElevatorsWindow(
+        floors=15,
+        elevators=7,
+    )
     window.show()
+
     sys.exit(app.exec_())
 
 
