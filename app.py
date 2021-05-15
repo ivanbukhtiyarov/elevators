@@ -4,7 +4,7 @@ The greatest command-line elevator simulator you have seen
 from typing import Optional
 
 from src.elevator import Elevator
-from src.command_processor import Command, process
+from src.command_processor import Command, CommandProcessor
 
 
 def is_source_valid(source: str) -> bool:
@@ -33,13 +33,12 @@ def is_command_valid(command: Command):
 def print_greeting() -> None:
     """ Say hello to user """
     print('Welcome to our CLI (Compact Lift sImulation) module')
-    print('Feel free to explore it! Try typing <help> to learn some syntax')
 
 
-def process_command(command: Command, elevator: Elevator):
+def process_command(command: Command, command_processor: CommandProcessor):
     """ Perform actions based on user's command """
     if is_command_valid(command):
-        process(command, elevator)
+        command_processor.process(command)
     else:
         print('Sorry, the command is not valid')
 
@@ -61,8 +60,9 @@ def initialize_elevator() -> Elevator:
     print('Setting up the elevator...')
     elevator = Elevator(tonnage=tonnage, floors_count=floors_count, current_direction=0, current_weight=0,
                         is_light_on=False, is_smoked=False, requests=[], is_communication_on=False, is_doors_open=False,
-                        is_empty=True, current_floor=1)
-    print('The elevator is set up and ready to go. Have fun!')
+                        is_doors_blocked=False, is_empty=True, current_floor=1)
+    print('The elevator is set up and ready to go.')
+    print('Feel free to explore it! Try typing <help> to learn more. Have fun!')
     return elevator
 
 
@@ -100,6 +100,7 @@ def main():
     # TODO: automatic (random) simulation mode
     print_greeting()
     elevator = initialize_elevator()
+    command_processor = CommandProcessor(elevator)
     is_simulation_active = False
 
     while True:
@@ -114,7 +115,7 @@ def main():
             print_help()
         elif is_command_query(split_input):
             if is_simulation_active:
-                process_command(Command(*split_input), elevator)
+                process_command(Command(*split_input), command_processor)
             else:
                 print('Simulation is not active')
         elif is_exit_query(split_input):
