@@ -17,12 +17,13 @@ def test_simple():
         requests=[],
         is_communication_on=False,
         is_doors_open=False,
+        is_doors_blocked=False,
         is_empty=True
     )
     operator = Operator([elevator])
     operator.open_doors(0)
     assert elevator.is_doors_open == True
-    
+
     operator.close_doors(0)
     assert elevator.is_doors_open == False
 
