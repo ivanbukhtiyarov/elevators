@@ -25,13 +25,12 @@ class Action(Enum):
     SET_LIGHT = 'setLight'
     SET_SMOKE = 'setSmoke'
     SET_BARRIER = 'setBarrier'
-    SET_DIRECTION = 'setDir'
+    SET_DIRECTION = 'setDirection'
     SET_FLOOR_COUNT = 'setFloorCount'
-    INTERCOM_REQUEST = 'intercomRequest' # TODO(JellyBongo): значение изменено с "call". Добавить в доку
-    INTERCOM_RESPOND = 'intercomRespond' # TODO(JellyBongo): same
+    INTERCOM_REQUEST = 'intercomRequest'
+    INTERCOM_RESPOND = 'intercomRespond'
     GET_READINGS = 'getReadings' # снять показания датчика
     GET_CURRENT_PARAMS = 'getCurrentParams'
-    # TODO(JellyBongo): Ниже новые команды. Добавить в доку
     CALL_FROM_FLOOR = 'callFromFloor'
 
 
@@ -49,20 +48,51 @@ class CommandProcessor:
 
     def process(self, command: Command):
         try:
+            # Здесь в зависимости от сочетания Source и Action определяется метод-обработчик, который будет вызван
             source_enum_name = Source(command.source).name
             action_enum_name = Action(command.action).name
             processor = getattr(self, f'{source_enum_name.lower()}_{action_enum_name.lower()}')
             if command.value is not None:
-                processor(command.value)
+                value = self.get_parsed_value(command.value, Action(command.action))
+                if value is not None:
+                    processor(value)
+                else:
+                    print('Illegal value for this action')
             else:
                 processor()
         except AttributeError as e:
             self.default_process()
         except Exception as e:
-            print('Something wrong with the source or action')
+            print('Something is wrong with the source or action')
+
+    def get_parsed_value(self, value: str, action: Action):
+        if action in [Action.SET_LIGHT, Action.SET_SMOKE, Action.SET_BARRIER]:
+            if value in ['True', 'true', '1', 'on', 'On']:
+                return True
+            elif value in ['False', 'false', '0', 'off', 'Off']:
+                return False
+            else:
+                return None
+        elif action in [Action.CALL_FROM_FLOOR, Action.MOVE_TO_FLOOR, Action.SET_WEIGHT, Action.SET_FLOOR_COUNT]:
+            try:
+                return int(value)
+            except ValueError:
+                return None
+        elif action == Action.SET_DIRECTION:
+            # TODO: Заменить на енум, если direction поменяется с инта на енум
+            try:
+                direction = int(value)
+                if direction in [-1, 0, 1]:
+                    return direction
+                else:
+                    return None
+            except ValueError:
+                return None
+        return None
 
     # Ниже обработчики запросов по парам Source, Action. Имена функций имеют вид <ключ_из_Source>_<ключ_из_Action>
-    # Ключи переведелы в lowercase. Важно именовать по такому принципу. Наверное
+    # Ключи переведелы в lowercase. Важно именовать по такому принципу,
+    # потому что имена вызываемых методов определяются в рантайме в зависимости от комбинации Source и Action
     def default_process(self):
         print('Sorry, that source cannot perform the action')
 
@@ -191,11 +221,9 @@ class CommandProcessor:
             if self.is_verbose:
                 print('Light has been manually set off by system')
             self.elevator.turn_light_off()
-        pass
 
     def system_set_smoke(self, on: bool):
         if on:
-            # TODO: тут ломается на параметре on. Нормально обработать 0 и 1
             if self.is_verbose:
                 print('Smoke has been manually set on by system')
             self.elevator.turn_smoke_on()
@@ -257,7 +285,6 @@ class CommandProcessor:
             print('"Call from floor" request is made by system')
         return self.elevator.move_to_floor(floor)
 
-    # TODO(JellyBongo): проверка, можно ли открыть дверь (лифт в движении)
     def user_inside_open_doors(self):
         if self.is_verbose:
             print('Doors opened by a passenger inside')
@@ -273,7 +300,7 @@ class CommandProcessor:
             print('"Move to floor" request is made by a passenger inside')
         return self.elevator.move_to_floor(floor)
 
-    # TODO(JellyBongo): Обработать запрос и потверждение голосовой связи
+    # Пока не совсем понятна логика запроса и ответа на голосовую связь.
     def user_inside_intercom_request(self):
         if self.is_verbose:
             print('Intercom request was made by a passenger inside')
