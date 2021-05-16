@@ -88,12 +88,21 @@ class Elevator:
 
     def turn_smoke_on(self):
         self.is_smoked = True
+        if self.current_durection:
+            self.move_to_floor(self.current_floor + self.current_durection)
+        # отправить requests оператору
+        if not self.is_doors_open:
+            self.open_doors()
+        self.turn_light_off()
 
     def turn_smoke_off(self):
         self.is_smoked = False
+        if self.is_doors_open:
+            self.close_doors()
 
     def is_door_blocked(self):
-        pass
+        self.open_doors()
+        self.close_doors()
 
     def call_dispatcher(self):
         self.is_communication_on = True
