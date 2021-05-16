@@ -90,7 +90,7 @@ class Elevator:
         pass
 
     def __str__(self):
-        return f'elevator: taonnage={self.tonnage},\
+        return f'elevator: tonnage={self.tonnage},\
         floors = {self.floors_count}, direction = {self.current_durection},\
         weight = {self.current_weight}, lights = {self.is_light_on}, smoke = {self.is_smoked}, \
         requests = {self.requests}, communication = {self.is_communication_on}, doors = {self.is_doors_open},\
