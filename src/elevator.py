@@ -8,10 +8,10 @@ MoveRequest = namedtuple('MoveRequest', ['floor', 'requested_direction'])
 
 class Elevator:
     def __init__(
-        self, tonnage: int, floors_count: int, current_direction: int, 
-        current_weight: int, is_light_on: bool, is_smoked: bool, requests: List[MoveRequest],
-        is_communication_on: bool, is_doors_open: bool, 
-        is_empty: bool, current_floor: int
+        self, tonnage: int, floors_count: int, current_direction: int = 0, 
+        current_weight: int = 0, is_light_on: bool = False, is_smoked: bool = False, requests: List[MoveRequest] = [],
+        is_communication_on: bool =False, is_doors_open: bool = False, 
+        is_empty: bool = True, current_floor: int = 1
     ):
         """
         current_direction: int - неинформативно, лучше сделать Enum
@@ -88,4 +88,11 @@ class Elevator:
         Реакция на изменение параметров датчиков
         """
         pass
+
+    def __str__(self):
+        return f'elevator: taonnage={self.tonnage},\
+        floors = {self.floors_count}, direction = {self.current_durection},\
+        weight = {self.current_weight}, lights = {self.is_light_on}, smoke = {self.is_smoked}, \
+        requests = {self.requests}, communication = {self.is_communication_on}, doors = {self.is_doors_open},\
+        empty = {self.is_empty}, floor = {self.current_floor}'
 
