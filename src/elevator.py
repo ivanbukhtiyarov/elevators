@@ -11,10 +11,10 @@ class MoveRequest:
 
 class Elevator:
     def __init__(
-        self, tonnage: int, floors_count: int, current_direction: int, 
-        current_weight: int, is_light_on: bool, is_smoked: bool, requests: List[MoveRequest],
-        is_communication_on: bool, is_doors_open: bool, is_doors_blocked: bool,
-        is_empty: bool, current_floor: int
+        self, tonnage: int, floors_count: int, current_direction: int = 0,
+        current_weight: int = 0, is_light_on: bool = False, is_smoked: bool = False, requests: List[MoveRequest] = [],
+        is_communication_on: bool = False, is_doors_open: bool = False, is_doors_blocked: bool = False,
+        is_empty: bool = True, current_floor: int = 1
     ):
         """
         current_direction: int - неинформативно, лучше сделать Enum
