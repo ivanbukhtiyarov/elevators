@@ -2,7 +2,10 @@
 The greatest command-line elevator simulator you have seen
 """
 from typing import Optional
+import sys
+import os.path
 
+import yaml
 from src.elevator import Elevator
 from src.command_processor import Command, CommandProcessor
 
@@ -95,14 +98,39 @@ def stop_simulation():
     """ Actions after simulation stop """
     print('Simulation stopped')
 
+def elevator_from_config(config_path=None):
+    if config_path:
+        if os.path.exists(config_path):
+            with open(os.path.abspath(config_path), 'r') as f:
+                config = yaml.safe_load(f)
+            print(yaml.dump(config))
+            try:
+                elevator = Elevator(**config)
+                print(f'Your elevator is {elevator}')
+                return elevator
+            except Exception as e:
+                print(f'Problems with reading config file: {e}\n')
+        else:
+            print(f'No such file: {config_path}\n')
+
+    elevator = initialize_elevator()
+
+
 
 def main():
     # TODO: automatic (random) simulation mode
     print_greeting()
-    elevator = initialize_elevator()
-    command_processor = CommandProcessor(elevator)
-    is_simulation_active = False
 
+    elevator = None
+    if len(sys.argv)>2:
+        if sys.argv[1]=='--config':
+            config_path = sys.argv[2]
+            elevator = elevator_from_config(config_path)
+    if not elevator:
+        elevator = initialize_elevator()
+    command_processor = CommandProcessor(elevator)
+    
+    is_simulation_active = False
     while True:
         split_input = input().split()
         if is_start_query(split_input):
@@ -119,10 +147,10 @@ def main():
             else:
                 print('Simulation is not active')
         elif is_exit_query(split_input):
-            confirmation_answer = input('Do you want to close the program (Y/n)\n')
-            while confirmation_answer != 'Y' and confirmation_answer != 'n':
-                confirmation_answer = input('Please, type "Y" or "n"\n')
-            if confirmation_answer == 'Y':
+            confirmation_answer = input('Do you want to close the program (y/n)\n')
+            while confirmation_answer != 'y' and confirmation_answer != 'n':
+                confirmation_answer = input('Please, type "y" or "n"\n')
+            if confirmation_answer == 'y':
                 if is_simulation_active:
                     stop_simulation()
                 return
