@@ -159,7 +159,7 @@ class Operator:
         return best_elevator_id
 
     def _is_approaching(self, elevator: Elevator, floor: int) -> bool:
-        return elevator.current_floor == floor and elevator.current_direction == 0 \
+        return elevator.current_direction == 0 \
                or elevator.current_floor > floor and elevator.current_direction == -1 \
                or elevator.current_floor < floor and elevator.current_direction == 1
 

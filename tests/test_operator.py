@@ -22,9 +22,9 @@ def test_simple():
     )
     operator = Operator([elevator])
     operator.open_doors(0)
-    assert elevator.is_doors_open == True
+    assert operator.elevators_list[0].is_doors_open == True
 
     operator.close_doors(0)
-    assert elevator.is_doors_open == False
+    assert operator.elevators_list[0].is_doors_open == False
 
     assert operator.open_doors(1) == 'Wrong elevator number'
