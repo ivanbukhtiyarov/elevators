@@ -1,8 +1,11 @@
 """ Command processing module. Contains the logic for RI-04-01 requirement. """
 
 from enum import Enum
-from src.elevator import Elevator
+from functools import partial
+
 import attr
+
+from src.operator import Operator
 
 
 class Source(Enum):
@@ -38,12 +41,13 @@ class Action(Enum):
 class Command:
     source = attr.ib()
     action = attr.ib()
-    value = attr.ib(default=None)
+    value = attr.ib()
+    elevator_id = attr.ib()
 
 
 class CommandProcessor:
-    def __init__(self, elevator: Elevator):
-        self.elevator = elevator
+    def __init__(self, operator: Operator):
+        self.operator = operator
         self.is_verbose = True  # Вывод сообщений в стдаут
 
     def process(self, command: Command):
@@ -52,16 +56,23 @@ class CommandProcessor:
             source_enum_name = Source(command.source).name
             action_enum_name = Action(command.action).name
             processor = getattr(self, f'{source_enum_name.lower()}_{action_enum_name.lower()}')
-            if command.value is not None:
+
+            if command.value:
                 value = self.get_parsed_value(command.value, Action(command.action))
-                if value is not None:
+                if value and command.elevator_id > 0:
+                    processor(value, command.elevator_id)
+                elif value:
                     processor(value)
                 else:
                     print('Illegal value for this action')
+            elif command.elevator_id > 0:
+                processor(command.elevator_id)
             else:
                 processor()
         except AttributeError as e:
             self.default_process()
+        except TypeError as e:
+            print('Something went wrong. Most possibly, the action does not support elevator id argument')
         except Exception as e:
             print('Something is wrong with the source or action')
 
@@ -96,222 +107,252 @@ class CommandProcessor:
     def default_process(self):
         print('Sorry, that source cannot perform the action')
 
-    def smoke_sensor_get_readings(self):
+    def smoke_sensor_get_readings(self, elevator_id: int):
         if self.is_verbose:
             print('Getting readings from smoke sensor')
-        return self.elevator.is_smoked
+        return self.operator.is_smoked(elevator_id)
 
-    def weight_sensor_get_readings(self):
+    def weight_sensor_get_readings(self, elevator_id: int):
         if self.is_verbose:
             print('Getting readings from weight sensor')
-        return self.elevator.current_weight
+        return self.operator.get_current_weight(elevator_id)
 
-    def position_sensor_get_readings(self):
+    def position_sensor_get_readings(self, elevator_id: int):
         """ Возвращает текущий этаж и направление кабины лифта """
         if self.is_verbose:
             print('Getting readings from position sensor')
-        return self.elevator.current_floor, self.elevator.current_direction
+        return self.operator.get_current_floor(elevator_id), self.operator.get_current_direction(elevator_id)
 
-    def doors_sensor_get_readings(self):
+    def doors_sensor_get_readings(self, elevator_id: int):
         if self.is_verbose:
             print('Getting readings from doors sensor')
-        return self.elevator.is_doors_open
+        return self.operator.is_doors_open(elevator_id)
 
-    def light_sensor_get_readings(self):
+    def light_sensor_get_readings(self, elevator_id: int):
         if self.is_verbose:
             print('Getting readings from light sensor')
-        return self.elevator.is_light_on
+        return self.operator.is_light_on(elevator_id)
 
-    def dispatcher_open_doors(self):
+    def dispatcher_open_doors(self, elevator_id: int):
         if self.is_verbose:
             print('Doors opened by dispatcher')
-        return self.elevator.open_doors()
+        return self.operator.open_doors(elevator_id)
 
-    def dispatcher_close_doors(self):
+    def dispatcher_close_doors(self, elevator_id: int):
         if self.is_verbose:
             print('Doors closed by dispatcher')
-        return self.elevator.close_doors()
+        return self.operator.close_doors(elevator_id)
 
-    def dispatcher_move_to_floor(self, floor: int):
+    def dispatcher_move_to_floor(self, floor: int, elevator_id: int):
         if self.is_verbose:
             print('"Move to floor" request is made by dispatcher')
-        return self.elevator.move_to_floor(floor)
+        return self.operator.move_to_floor(floor, elevator_id)
 
-    def dispatcher_set_weight(self, weight: int):
+    def dispatcher_set_weight(self, weight: int, elevator_id: int):
         if self.is_verbose:
             print('Weight has been manually set by dispatcher')
-        self.elevator.current_weight = weight
+        self.operator.set_weight(weight, elevator_id)
 
-    def dispatcher_set_light(self, on: bool):
+    def dispatcher_set_light(self, on: bool, elevator_id: int):
         if on:
             if self.is_verbose:
                 print('Light has been manually set on by dispatcher')
-            self.elevator.turn_light_on()
+            self.operator.turn_light_on(elevator_id)
         else:
             if self.is_verbose:
                 print('Light has been manually set off by dispatcher')
-            self.elevator.turn_light_off()
+            self.operator.turn_light_off(elevator_id)
 
-    def dispatcher_set_smoke(self, on: bool):
+    def dispatcher_set_smoke(self, on: bool, elevator_id: int):
         if on:
             if self.is_verbose:
                 print('Smoke has been manually set on by dispatcher')
-            self.elevator.turn_smoke_on()
+            self.operator.turn_smoke_on(elevator_id)
         else:
             if self.is_verbose:
                 print('Smoke has been manually set off by dispatcher')
-            self.elevator.turn_smoke_off()
+            self.operator.turn_smoke_off(elevator_id)
 
-    def dispatcher_set_barrier(self, on: bool):
+    def dispatcher_set_barrier(self, on: bool, elevator_id: int):
         if on:
             if self.is_verbose:
                 print('Door barrier has been manually set on by dispatcher')
-            self.elevator.is_door_blocked = True
+            self.operator.block_door(elevator_id)
         else:
             if self.is_verbose:
                 print('Door barrier has been manually set off by dispatcher')
-            self.elevator.is_door_blocked = False
+            self.operator.unblock_door(elevator_id)
 
-    def dispatcher_set_direction(self, direction: int):
+    def dispatcher_set_direction(self, direction: int, elevator_id: int):
         if self.is_verbose:
             print('Direction has been manually set on by dispatcher')
-        self.elevator.current_direction = direction
+        self.operator.set_direction(direction, elevator_id)
 
-    def dispatcher_intercom_request(self):
+    def dispatcher_intercom_request(self, elevator_id: int):
         if self.is_verbose:
             print('Intercom request was made by dispatcher')
-        self.elevator.call_dispatcher()
+        self.operator.call_dispatcher(elevator_id)
 
-    def dispatcher_intercom_respond(self):
+    def dispatcher_intercom_respond(self, elevator_id: int):
         if self.is_verbose:
             print('Intercom response was made by dispatcher')
-        self.elevator.call_dispatcher()
+        self.operator.call_dispatcher(elevator_id)
 
     def dispatcher_call_from_floor(self, floor: int):
         if self.is_verbose:
             print('"Call from floor" request is made by dispatcher')
-        return self.elevator.move_to_floor(floor)
 
-    def system_open_doors(self):
+        try:
+            return self.operator.process_call(floor)
+        except ValueError as e:
+            print(f'Cannot call an elevator: {e}')
+
+    def system_open_doors(self, elevator_id: int):
         if self.is_verbose:
             print('Doors opened by system')
-        return self.elevator.open_doors()
+        return self.operator.open_doors(elevator_id)
 
-    def system_close_doors(self):
+    def system_close_doors(self, elevator_id: int):
         if self.is_verbose:
             print('Doors closed by system')
-        return self.elevator.close_doors()
+        return self.operator.close_doors(elevator_id)
 
-    def system_move_to_floor(self, floor: int):
+    def system_move_to_floor(self, floor: int, elevator_id: int):
         if self.is_verbose:
             print('"Move to floor" request is made by system')
-        return self.elevator.move_to_floor(floor)
+        return self.operator.move_to_floor(floor, elevator_id)
 
-    def system_set_weight(self, weight: int):
-        if self.is_verbose:
-            print('Weight has been manually set by system')
-        self.elevator.current_weight = weight
+    def system_set_weight(self, weight: int, elevator_id: int):
+        try:
+            if self.is_verbose:
+                print('Weight has been manually set by system')
+            self.operator.set_weight(weight, elevator_id)
+        except ValueError as e:
+            print(e)
 
-    def system_set_light(self, on: bool):
-        if on:
-            if self.is_verbose:
-                print('Light has been manually set on by system')
-            self.elevator.turn_light_on()
-        else:
-            if self.is_verbose:
-                print('Light has been manually set off by system')
-            self.elevator.turn_light_off()
+    def system_set_light(self, on: bool, elevator_id: int):
+        try:
+            if on:
+                if self.is_verbose:
+                    print('Light has been manually set on by system')
+                self.operator.turn_light_on(elevator_id)
+            else:
+                if self.is_verbose:
+                    print('Light has been manually set off by system')
+                self.operator.turn_light_off(elevator_id)
+        except ValueError as e:
+            print(e)
 
-    def system_set_smoke(self, on: bool):
-        if on:
-            if self.is_verbose:
-                print('Smoke has been manually set on by system')
-            self.elevator.turn_smoke_on()
-        else:
-            if self.is_verbose:
-                print('Smoke has been manually set off by system')
-            self.elevator.turn_smoke_off()
+    def system_set_smoke(self, on: bool, elevator_id: int):
+        try:
+            if on:
+                if self.is_verbose:
+                    print('Smoke has been manually set on by system')
+                self.operator.turn_smoke_on(elevator_id)
+            else:
+                if self.is_verbose:
+                    print('Smoke has been manually set off by system')
+                self.operator.turn_smoke_off(elevator_id)
+        except ValueError as e:
+            print(e)
 
-    def system_set_barrier(self, on: bool):
-        if on:
-            if self.is_verbose:
-                print('Door barrier has been manually set on by system')
-            self.elevator.is_door_blocked = True
-        else:
-            if self.is_verbose:
-                print('Door barrier has been manually set off by system')
-            self.elevator.is_door_blocked = False
+    def system_set_barrier(self, on: bool, elevator_id: int):
+        try:
+            if on:
+                if self.is_verbose:
+                    print('Door barrier has been manually set on by system')
+                self.operator.block_door(elevator_id)
+            else:
+                if self.is_verbose:
+                    print('Door barrier has been manually set off by system')
+                self.operator.unblock_door(elevator_id)
+        except ValueError as e:
+            print(e)
 
-    def system_set_direction(self, direction: int):
-        if self.is_verbose:
-            print('Direction has been manually set by system')
-        self.elevator.current_direction = direction
+    def system_set_direction(self, direction: int, elevator_id: int):
+        try:
+            if self.is_verbose:
+                print('Direction has been manually set by system')
+            self.operator.set_direction(direction, elevator_id)
+        except ValueError as e:
+            print(e)
 
     def system_set_floor_count(self, count: int):
-        if self.is_verbose:
-            print('Floor count has been manually set by system')
-        self.elevator.current_direction = count
+        try:
+            self.operator.set_floor_count(count)
+            if self.is_verbose:
+                print('Floor count has been manually set by system')
+        except ValueError as e:
+            print(e)
 
-    def system_intercom_request(self):
+    def system_intercom_request(self, elevator_id: int):
         if self.is_verbose:
             print('Intercom request was made by system')
-        self.elevator.call_dispatcher()
+        self.operator.call_dispatcher(elevator_id)
 
-    def system_intercom_respond(self):
+    def system_intercom_respond(self, elevator_id: int):
         if self.is_verbose:
             print('Intercom response was made by system')
-        self.elevator.call_dispatcher()
+        self.operator.call_dispatcher(elevator_id)
 
-    def system_get_current_params(self):
+    def system_get_current_params(self, elevator_id: int):
         if self.is_verbose:
             print('Getting elevator parameters')
         return {
-            'tonnage': self.elevator.tonnage,
-            'floors_count': self.elevator.floors_count,
-            'current_direction': self.elevator.current_direction,
-            'current_weight': self.elevator.current_weight,
-            'is_light_on': self.elevator.is_light_on,
-            'is_smoked': self.elevator.is_smoked,
-            'requests': self.elevator.requests,
-            'is_communication_on': self.elevator.is_communication_on,
-            'is_doors_open': self.elevator.is_doors_open,
-            'is_doors_blocked': self.elevator.is_doors_blocked,
-            'is_empty': self.elevator.is_empty,
-            'current_floor': self.elevator.current_floor,
+            'tonnage': self.operator.get_tonnage(elevator_id),
+            'floors_count': self.operator.get_floors_count(elevator_id),
+            'current_direction': self.operator.get_current_direction(elevator_id),
+            'current_weight': self.operator.get_current_weight(elevator_id),
+            'is_light_on': self.operator.is_light_on(elevator_id),
+            'is_smoked': self.operator.is_smoked(elevator_id),
+            'requests': self.operator.get_requests(elevator_id),
+            'is_communication_on': self.operator.is_communication_on(elevator_id),
+            'is_doors_open': self.operator.is_doors_open(elevator_id),
+            'is_doors_blocked': self.operator.is_doors_blocked(elevator_id),
+            'is_empty': self.operator.is_empty(elevator_id),
+            'current_floor': self.operator.get_current_floor(elevator_id),
         }
 
     def system_call_from_floor(self, floor: int):
         if self.is_verbose:
             print('"Call from floor" request is made by system')
-        return self.elevator.move_to_floor(floor)
 
-    def user_inside_open_doors(self):
+        try:
+            return self.operator.process_call(floor)
+        except ValueError as e:
+            print(f'Cannot call an elevator: {e}')
+
+    def user_inside_open_doors(self, elevator_id: int):
         if self.is_verbose:
             print('Doors opened by a passenger inside')
-        return self.elevator.open_doors()
+        return self.operator.open_doors(elevator_id)
 
-    def user_inside_close_doors(self):
+    def user_inside_close_doors(self, elevator_id: int):
         if self.is_verbose:
             print('Doors a passenger inside')
-        return self.elevator.close_doors()
+        return self.operator.close_doors(elevator_id)
 
-    def user_inside_move_to_floor(self, floor: int):
+    def user_inside_move_to_floor(self, floor: int, elevator_id: int):
         if self.is_verbose:
             print('"Move to floor" request is made by a passenger inside')
-        return self.elevator.move_to_floor(floor)
+        return self.operator.move_to_floor(floor, elevator_id)
 
     # Пока не совсем понятна логика запроса и ответа на голосовую связь.
-    def user_inside_intercom_request(self):
+    def user_inside_intercom_request(self, elevator_id: int):
         if self.is_verbose:
             print('Intercom request was made by a passenger inside')
-        self.elevator.call_dispatcher()
+        self.operator.call_dispatcher(elevator_id)
 
-    def user_outside_intercom_request(self):
+    def user_outside_intercom_request(self, elevator_id: int):
         if self.is_verbose:
             print('Intercom request was made by a passenger outside')
-        self.elevator.call_dispatcher()
+        self.operator.call_dispatcher(elevator_id)
 
     def user_outside_call_from_floor(self, floor: int):
         if self.is_verbose:
             print('"Call from floor" request is made by a passenger outside')
-        return self.elevator.move_to_floor(floor)
+
+        try:
+            return self.operator.process_call(floor)
+        except ValueError as e:
+            print(f'Cannot call an elevator: {e}')

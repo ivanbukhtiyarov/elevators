@@ -6,7 +6,6 @@ from typing import List
 @attr.s
 class MoveRequest:
     floor = attr.ib()
-    requested_direction = attr.ib()
 
 
 class Elevator:
