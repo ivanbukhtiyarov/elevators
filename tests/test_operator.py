@@ -27,4 +27,5 @@ def test_simple():
     operator.close_doors(0)
     assert operator.elevators_list[0].is_doors_open == False
 
-    assert operator.open_doors(1) == 'Wrong elevator number'
+    with pytest.raises(Exception) as e_info:
+        assert operator.open_doors(1)
