@@ -1,8 +1,9 @@
 from typing import List
 from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtWidgets import QMainWindow
+from PyQt5.QtWidgets import QMainWindow, QDialog
 from dataclasses import dataclass
 import random
+import math
 
 
 @dataclass
@@ -21,6 +22,9 @@ class UIConfig:
     margin_height: int = 20
 
     circle_radius: int = 10
+
+    def button_size(self):
+        return (self.button_width, self.floor_height)
 
     def calculate_width(self, elevators_number: int) -> int:
         width = 2 * self.margin_side + self.label_width + \
@@ -63,10 +67,35 @@ class UIConfig:
         middle_window = window_height / 2
 
         return middle_window + (sensors_total/2 - sensor_number) * self.floor_height
+    
+    def select_window_size(self, floors_number):
+        columns = 2
+        rows = math.ceil(floors_number / columns)
+        width = 2*self.margin_side + columns*self.button_width + (columns - 1)*self.between_buttons
+        height = 2*self.margin_height + rows * self.floor_height + (rows-1) * self.between_floors
+
+        return (width, height)
+    
+    def select_floor_button_offset(self, floor_number, total_floors):
+        columns = 2
+        rows = math.ceil(total_floors / columns)
+
+        button_column = floor_number // rows
+        button_row = floor_number % rows
+
+        (_, height) = self.select_window_size(total_floors)
+
+        button_x = self.margin_side + button_column*(self.button_width + self.between_buttons)
+        button_y = height - (2* self.margin_height + button_row*(self.floor_height + self.between_floors))
+
+        return (button_x, button_y)
 
 
 class Elevator:
-    def __init__(self, parent_widget: int, number: int, floors_number: int, ui_config: UIConfig):
+    def __init__(self, parent_widget, number: int, floors_number: int, ui_config: UIConfig):
+        self.parent_widget = parent_widget
+        self.total_floors = floors_number
+
         self.ui_config = ui_config
         self.number = number
         self.height = self.ui_config.calculate_elevator_height(floors_number)
@@ -106,8 +135,13 @@ class Elevator:
         self.doors_sensor.setText("Двери")
         self.doors_sensor.clicked.connect(self.trigger_doors_sensor)
     
+    def _show_select_floor_dialog(self, floor_number):
+        select_dialog = SelectFloorDialog(self, floor_number)
+        select_dialog.exec_()
+    
     def move_to_floor(self, floor_number):
         self.slider.setValue(floor_number)
+        self._show_select_floor_dialog(floor_number)
     
     def trigger_smoke_sensor(self):
         print(f"Triggered smoke sensor for elevator {self.number}")
@@ -117,6 +151,38 @@ class Elevator:
     
     def trigger_doors_sensor(self):
         print(f"Triggered doors sensor for elevator {self.number}")
+    
+    def add_call(self, floor_number):
+        print(f"Elevator {self.number} called to {floor_number} floor")
+
+
+class SelectFloorDialog(QtWidgets.QDialog):
+    def __init__(self, elevator: Elevator, floor_number):
+        super().__init__(elevator.parent_widget)
+        self.elevator = elevator
+        self.setWindowTitle(f"{floor_number} этаж")
+        label = QtWidgets.QLabel(self)
+        label.setText(f"Лифт {elevator.number}")
+        self.resize(*elevator.ui_config.select_window_size(elevator.total_floors))
+        for i in range(elevator.total_floors):
+            self._init_button(i, floor_number)
+    
+    def _init_button(self, i, floor_number):
+        floor_button = QtWidgets.QPushButton(self)
+        floor_button.setText(str(i+1))
+        floor_button.setGeometry(
+            QtCore.QRect(
+                *self.elevator.ui_config.select_floor_button_offset(i+1, self.elevator.total_floors), 
+                *self.elevator.ui_config.button_size())
+        )
+        if i+1 == floor_number:
+            floor_button.setDisabled(True)
+
+        floor_button.clicked.connect(lambda: self.button_callback(i))
+    
+    def button_callback(self, n):
+        self.elevator.add_call(n+1)
+        self.close()
 
 
 class ElevatorsWindow(QMainWindow):

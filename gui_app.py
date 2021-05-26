@@ -8,8 +8,8 @@ def application():
     app = QApplication(sys.argv)
 
     window = ElevatorsWindow(
-        floors=15,
-        elevators=7,
+        floors=10,
+        elevators=4,
     )
     window.show()
 
