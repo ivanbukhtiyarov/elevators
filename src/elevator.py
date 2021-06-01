@@ -82,8 +82,8 @@ class Elevator:
 
     def turn_smoke_on(self):
         self.is_smoked = True
-        if self.current_durection:
-            self.move_to_floor(self.current_floor + self.current_durection)
+        if self.current_direction:
+            self.move_to_floor(self.current_floor + self.current_direction)
         # отправить requests оператору
         if not self.is_doors_open:
             self.open_doors()
@@ -109,7 +109,7 @@ class Elevator:
 
     def __str__(self):
         return f'elevator: tonnage={self.tonnage},\
-        floors = {self.floors_count}, direction = {self.current_durection},\
+        floors = {self.floors_count}, direction = {self.current_direction},\
         weight = {self.current_weight}, lights = {self.is_light_on}, smoke = {self.is_smoked}, \
         requests = {self.requests}, communication = {self.is_communication_on}, doors = {self.is_doors_open},\
         empty = {self.is_empty}, floor = {self.current_floor}, doors blocked = {self.is_doors_blocked}'
