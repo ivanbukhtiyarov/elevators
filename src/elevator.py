@@ -1,10 +1,6 @@
 from collections import namedtuple
 from typing import List
-
-
-# requested_direction - направление, куда вызвали лифт
 MoveRequest = namedtuple('MoveRequest', ['floor', 'requested_direction'])
-
 
 class Elevator:
     def __init__(
@@ -66,10 +62,45 @@ class Elevator:
         по направлению движения
         """
         is_moving_up = (self.current_durection > 0) # Костыль из-за несоответствия типов
-        first_request = self.requests.pop(0)
-        if first_request.requested_direction == is_moving_up: # bool мешает читаемость кода (см. прим. про Enum в __init__)
-            self.move_to_floor(first_request.floor)
-        # А вот иначе ничего не произойдёт, поэтому нужна какая-то другая структура хранения requests
+        
+        if len(self.requests)<1:
+            raise Exception("queue is empty")
+    
+        # разделяем то, что надодится выше, а что ниже 
+        less_and_up = sorted([x for x in self.requests 
+                              if x.floor<self.current_floor and x.requested_direction == True], 
+                             reverse = True,key = lambda x:x[0])
+
+        less_and_down = sorted([x for x in self.requests 
+                                if x.floor<self.current_floor  and x.requested_direction == False], 
+                               reverse = True,key = lambda x:x[0])
+
+        bigger_and_up = sorted([x for x in self.requests 
+                                if x.floor>self.current_floor  and x.requested_direction == True],
+                              key = lambda x:x[0])
+
+        bigger_and_down = sorted([x for x in self.requests 
+                                  if x.floor>self.current_floor and x.requested_direction == False],
+                                key = lambda x:x[0])
+
+        if is_moving_up and len(bigger_and_up)>0:
+            self.move_to_floor(bigger_and_up.pop(0).floor)
+
+        elif is_moving_up and len(bigger_and_down)>0:
+            self.current_durection = 0
+            self.move_to_floor(bigger_and_down.pop(-1).floor)
+
+        elif not is_moving_up and len(less_and_down)>0:
+            self.move_to_floor(less_and_down.pop(0).floor)
+
+        elif not is_moving_up and len(less_and_up)>0:
+            self.current_durection = 1
+            self.move_to_floor(less_and_up.pop(-1).floor)
+        else:
+            #если мы оказались тут, значит что то пошло не так
+            raise Exception("Unexpected behaviour")
+        
+        self.requests = less_and_up+less_and_down+bigger_and_up+bigger_and_down
 
     def turn_smoke_on(self):
         self.is_smoked = True
@@ -88,4 +119,3 @@ class Elevator:
         Реакция на изменение параметров датчиков
         """
         pass
-
