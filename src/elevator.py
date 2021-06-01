@@ -1,11 +1,17 @@
-import attr
+from collections import namedtuple
 from typing import List
 
 
 # requested_direction - направление, куда вызвали лифт
-@attr.s
-class MoveRequest:
-    floor = attr.ib()
+MoveRequest = namedtuple('MoveRequest', ['floor', 'requested_direction'])
+
+# Для информативности направлений движения
+REQUEST_DOWN = False
+REQUEST_UP = True
+
+DIRECTION_DOWN = -1
+DIRECTION_STOP = 0
+DIRECTION_UP = 1
 
 
 class Elevator:
@@ -76,9 +82,21 @@ class Elevator:
 
     def turn_smoke_on(self):
         self.is_smoked = True
+        if self.current_durection:
+            self.move_to_floor(self.current_floor + self.current_durection)
+        # отправить requests оператору
+        if not self.is_doors_open:
+            self.open_doors()
+        self.turn_light_off()
 
     def turn_smoke_off(self):
         self.is_smoked = False
+        if self.is_doors_open:
+            self.close_doors()
+
+    def is_door_blocked(self):
+        self.open_doors()
+        self.close_doors()
 
     def call_dispatcher(self):
         self.is_communication_on = True
