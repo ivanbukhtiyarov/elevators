@@ -41,8 +41,8 @@ class Action(Enum):
 class Command:
     source = attr.ib()
     action = attr.ib()
-    value = attr.ib()
-    elevator_id = attr.ib()
+    value = attr.ib(default=0)
+    elevator_id = attr.ib(default=-1)
 
 
 class CommandProcessor:
@@ -53,6 +53,7 @@ class CommandProcessor:
     def process(self, command: Command):
         try:
             # Здесь в зависимости от сочетания Source и Action определяется метод-обработчик, который будет вызван
+            print(command.__dict__)
             source_enum_name = Source(command.source).name
             action_enum_name = Action(command.action).name
             processor = getattr(self, f'{source_enum_name.lower()}_{action_enum_name.lower()}')
@@ -60,18 +61,20 @@ class CommandProcessor:
             if command.value:
                 value = self.get_parsed_value(command.value, Action(command.action))
                 if value and command.elevator_id > 0:
-                    processor(value, command.elevator_id)
+                    return processor(value, command.elevator_id)
                 elif value:
-                    processor(value)
+                    return processor(value)
                 else:
                     print('Illegal value for this action')
-            elif command.elevator_id > 0:
-                processor(command.elevator_id)
+            elif command.elevator_id > -1:
+                return processor(command.elevator_id)
             else:
-                processor()
+                return processor()
         except AttributeError as e:
             self.default_process()
         except TypeError as e:
+            print(e)
+            print(command.action)
             print('Something went wrong. Most possibly, the action does not support elevator id argument')
         except Exception as e:
             print('Something is wrong with the source or action')
