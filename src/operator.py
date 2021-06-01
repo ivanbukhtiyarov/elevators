@@ -148,7 +148,8 @@ class Operator:
             raise ValueError('Floor is out of range')
 
         best_elevator_id = self._find_suitable_elevator_id(floor)
-        self.elevators_list[best_elevator_id].add_request(MoveRequest(floor))
+        # self.elevators_list[best_elevator_id].add_request(MoveRequest(floor))
+        self.elevators_list[best_elevator_id].move_to_floor(floor)
 
     def _find_suitable_elevator_id(self, floor: int) -> int:
         best_elevator_id = 0
