@@ -1,16 +1,18 @@
-from collections import namedtuple
+import attr
 from typing import List
 
 
 # requested_direction - направление, куда вызвали лифт
-MoveRequest = namedtuple('MoveRequest', ['floor', 'requested_direction'])
+@attr.s
+class MoveRequest:
+    floor = attr.ib()
 
 
 class Elevator:
     def __init__(
-        self, tonnage: int, floors_count: int, current_direction: int = 0, 
+        self, tonnage: int, floors_count: int, current_direction: int = 0,
         current_weight: int = 0, is_light_on: bool = False, is_smoked: bool = False, requests: List[MoveRequest] = [],
-        is_communication_on: bool =False, is_doors_open: bool = False, 
+        is_communication_on: bool = False, is_doors_open: bool = False, is_doors_blocked: bool = False,
         is_empty: bool = True, current_floor: int = 1
     ):
         """
@@ -20,13 +22,14 @@ class Elevator:
         """
         self.tonnage = tonnage
         self.floors_count = floors_count
-        self.current_durection = current_direction
+        self.current_direction = current_direction
         self.current_weight = current_weight
         self.is_light_on = is_light_on
-        self.is_smoked = is_smoked,
+        self.is_smoked = is_smoked
         self.requests: List[MoveRequest] = requests
         self.is_communication_on = is_communication_on
         self.is_doors_open = is_doors_open
+        self.is_doors_blocked = is_doors_blocked
         self.is_empty = is_empty
         self.current_floor = current_floor
 
@@ -65,7 +68,7 @@ class Elevator:
         с помощью которого можно отбирать ближайший запрос
         по направлению движения
         """
-        is_moving_up = (self.current_durection > 0) # Костыль из-за несоответствия типов
+        is_moving_up = (self.current_direction > 0) # Костыль из-за несоответствия типов
         first_request = self.requests.pop(0)
         if first_request.requested_direction == is_moving_up: # bool мешает читаемость кода (см. прим. про Enum в __init__)
             self.move_to_floor(first_request.floor)
@@ -76,9 +79,6 @@ class Elevator:
 
     def turn_smoke_off(self):
         self.is_smoked = False
-
-    def is_door_blocked(self):
-        pass
 
     def call_dispatcher(self):
         self.is_communication_on = True
@@ -94,5 +94,4 @@ class Elevator:
         floors = {self.floors_count}, direction = {self.current_durection},\
         weight = {self.current_weight}, lights = {self.is_light_on}, smoke = {self.is_smoked}, \
         requests = {self.requests}, communication = {self.is_communication_on}, doors = {self.is_doors_open},\
-        empty = {self.is_empty}, floor = {self.current_floor}'
-
+        empty = {self.is_empty}, floor = {self.current_floor}, doors blocked = {self.is_doors_blocked}'
