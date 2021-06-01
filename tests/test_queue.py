@@ -29,23 +29,25 @@ def test_queue_lifecycle():
     assert elevator.requests == [request_5_down, request_14_up]
 
     elevator.add_request(request_9_down)
-    assert elevator.requests == [request_9_down, request_5_down, request_14_up]
+    assert elevator.requests == [request_5_down, request_14_up, request_9_down]
 
     elevator.add_request(request_7_up)
     assert elevator.requests == [
-        request_9_down, request_5_down,
-        request_7_up, request_14_up,
+        request_5_down, request_14_up,
+        request_9_down, request_7_up
     ]
 
     elevator.add_request(request_7_down)
     assert elevator.requests == [
-        request_9_down, request_7_down, request_5_down,
-        request_7_up, request_14_up,
+        request_5_down, request_14_up,
+        request_9_down, request_7_up,
+        request_7_down
     ]
 
     elevator.add_request(request_2_up)
     assert elevator.requests == [
-        request_9_down, request_7_down, request_5_down, 
-        request_2_up, request_7_up, request_14_up,
+        request_5_down, request_14_up,
+        request_9_down, request_7_up,
+        request_7_down, request_2_up
     ]
 
