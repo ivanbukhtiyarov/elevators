@@ -17,13 +17,15 @@ def test_simple():
         requests=[],
         is_communication_on=False,
         is_doors_open=False,
+        is_doors_blocked=False,
         is_empty=True
     )
     operator = Operator([elevator])
     operator.open_doors(0)
-    assert elevator.is_doors_open == True
-    
-    operator.close_doors(0)
-    assert elevator.is_doors_open == False
+    assert operator.elevators_list[0].is_doors_open == True
 
-    assert operator.open_doors(1) == 'Wrong elevator number'
+    operator.close_doors(0)
+    assert operator.elevators_list[0].is_doors_open == False
+
+    with pytest.raises(Exception) as e_info:
+        assert operator.open_doors(1)
