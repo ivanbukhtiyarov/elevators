@@ -1,9 +1,26 @@
 from typing import List
 from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtWidgets import QMainWindow, QDialog
+from PyQt5.QtWidgets import QMainWindow
 from dataclasses import dataclass
 import random
 import math
+from src.command_processor import Command, CommandProcessor, Source, Action
+from src.operator import Operator
+from src.elevator import Elevator as ElevatorLogic
+import time
+
+
+class SliderWorker(QtCore.QObject):
+    finished = QtCore.pyqtSignal()
+    progress = QtCore.pyqtSignal(int)
+
+    def run(self, start, finish, step):
+        while start != finish:
+            start += step
+            time.sleep(0.5)
+            print(start)
+            self.progress.emit(start)
+        self.finished.emit()
 
 
 @dataclass
@@ -93,6 +110,10 @@ class UIConfig:
 
 class Elevator:
     def __init__(self, parent_widget, number: int, floors_number: int, ui_config: UIConfig):
+        self.current_floor = 1
+        self._is_locked = False
+
+        self.logic = ElevatorLogic(floors_count=floors_number, tonnage=10000)
         self.parent_widget = parent_widget
         self.total_floors = floors_number
 
@@ -108,6 +129,7 @@ class Elevator:
         self.slider.setOrientation(QtCore.Qt.Vertical)
         self.slider.setMinimum(1)
         self.slider.setMaximum(floors_number)
+        self.slider.setDisabled(True)
 
         sensors_offset_x = self.ui_config.calculate_sensors_offset_x(number)
 
@@ -135,22 +157,53 @@ class Elevator:
         self.doors_sensor.setText("Двери")
         self.doors_sensor.clicked.connect(self.trigger_doors_sensor)
     
-    def _show_select_floor_dialog(self, floor_number):
-        select_dialog = SelectFloorDialog(self, floor_number)
-        select_dialog.exec_()
+    def _show_select_floor_dialog(self, should_show_dialog, floor_number):
+        if should_show_dialog:
+            select_dialog = SelectFloorDialog(self, floor_number)
+            select_dialog.exec_()
     
-    def move_to_floor(self, floor_number):
-        self.slider.setValue(floor_number)
-        self._show_select_floor_dialog(floor_number)
+    def move_to_floor(self, to, should_show_dialog = True):
+        self.current_floor = to
+        self._is_locked = True
+        _from = self.slider.value()
+        duration = abs(to - _from) * 500
+        self.animation = QtCore.QPropertyAnimation(self.slider, b"sliderPosition")
+        self.animation.setDuration(duration)
+        self.animation.setStartValue(_from)
+        self.animation.setEndValue(to)
+        self.animation.start()
+        self.animation.finished.connect(self.unlock)
+        self.animation.finished.connect(lambda: self._show_select_floor_dialog(should_show_dialog, to))
+    
+    def unlock(self):
+        self._is_locked = False
     
     def trigger_smoke_sensor(self):
-        print(f"Triggered smoke sensor for elevator {self.number}")
+        my_dialog = QtWidgets.QDialog(self.parent_widget)
+        label = QtWidgets.QLabel(my_dialog)
+        label.setText(f"Сработал датчик задымления в лифте {self.number}")
+        label.adjustSize()
+        my_dialog.adjustSize()
+        my_dialog.exec_()
+        self.move_to_floor(1, False)
     
     def trigger_light_sensor(self):
-        print(f"Triggered light sensor for elevator {self.number}")
+        my_dialog = QtWidgets.QDialog(self.parent_widget)
+        label = QtWidgets.QLabel(my_dialog)
+        label.setText(f"Перебои электричества в лифте {self.number}")
+        label.adjustSize()
+        my_dialog.adjustSize()
+        my_dialog.exec_()
+        self.move_to_floor(1, False)
     
     def trigger_doors_sensor(self):
-        print(f"Triggered doors sensor for elevator {self.number}")
+        my_dialog = QtWidgets.QDialog(self.parent_widget)
+        label = QtWidgets.QLabel(my_dialog)
+        label.setText(f"Двери лифта {self.number} заблокированы")
+        label.adjustSize()
+        my_dialog.adjustSize()
+        my_dialog.exec_()
+        self.move_to_floor(1, False)
     
     def add_call(self, floor_number):
         print(f"Elevator {self.number} called to {floor_number} floor")
@@ -181,7 +234,8 @@ class SelectFloorDialog(QtWidgets.QDialog):
         floor_button.clicked.connect(lambda: self.button_callback(i))
     
     def button_callback(self, n):
-        self.elevator.add_call(n+1)
+        self.elevator.move_to_floor(n+1, False)
+        self.elevator.logic.move_to_floor(n+1)
         self.close()
 
 
@@ -216,8 +270,15 @@ class ElevatorsWindow(QMainWindow):
         for i in range(1, floors+1):
             self._init_floor(i)
         
+        self.up_buttons[-1].hide()
+        self.down_buttons[0].hide()
+        
         for j in range(1, elevators+1):
             self._init_elevator(j)
+
+        self.processor = CommandProcessor(Operator(
+            [x.logic for x in self.elevators]
+        ))
     
     def _init_floor(self, number: int):
         floor_offset_y = self.ui_config.calculate_floor_offset_y(self.window_height, number)
@@ -249,5 +310,16 @@ class ElevatorsWindow(QMainWindow):
         self.elevators.append(elevator)
 
     def call_elevator(self, floor_number):
-        random_elevator = random.randint(0, self.elevators_number - 1)
-        self.elevators[random_elevator].move_to_floor(floor_number)
+        self.processor.process(Command(
+            source=Source.SYSTEM,
+            action=Action.CALL_FROM_FLOOR, 
+            value=floor_number,
+        ))
+        for (i, elevator) in enumerate(self.elevators):
+            elevator_params = self.processor.process(Command(
+                source=Source.SYSTEM,
+                action=Action.GET_CURRENT_PARAMS,
+                elevator_id=i,
+            ))
+            if elevator_params['current_floor'] != elevator.current_floor and not elevator._is_locked:
+                elevator.move_to_floor(floor_number)
