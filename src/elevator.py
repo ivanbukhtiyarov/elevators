@@ -1,11 +1,9 @@
-import attr
+from collections import namedtuple
 from typing import List
 
 
 # requested_direction - направление, куда вызвали лифт
-@attr.s
-class MoveRequest:
-    floor = attr.ib()
+MoveRequest = namedtuple('MoveRequest', ['floor', 'requested_direction'])
 
 # Для информативности направлений движения
 REQUEST_DOWN = False
