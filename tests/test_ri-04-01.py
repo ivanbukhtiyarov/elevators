@@ -43,7 +43,6 @@ def test_sensors_get_readings(elevators, processor):
         elevator_id = randint(0, elevators_count - 1)
         command = Command(source=source.value, action='getReadings', elevator_id=elevator_id)
         returned_value = processor.process(command)
-        print(returned_value)
         assert returned_value is not None
 
 
