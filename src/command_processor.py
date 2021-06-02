@@ -53,7 +53,6 @@ class CommandProcessor:
     def process(self, command: Command):
         try:
             # Здесь в зависимости от сочетания Source и Action определяется метод-обработчик, который будет вызван
-            print(command.__dict__)
             source_enum_name = Source(command.source).name
             action_enum_name = Action(command.action).name
             processor = getattr(self, f'{source_enum_name.lower()}_{action_enum_name.lower()}')
@@ -63,8 +62,6 @@ class CommandProcessor:
         except AttributeError as e:
             self.default_process()
         except TypeError as e:
-            print(e)
-            print(command.action)
             print('Something went wrong. Most possibly, the action does not support elevator id argument')
         except Exception as e:
             print('Something is wrong with the source or action')
