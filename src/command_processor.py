@@ -41,7 +41,7 @@ class Action(Enum):
 class Command:
     source = attr.ib()
     action = attr.ib()
-    value = attr.ib(default=0)
+    value = attr.ib(default="0")
     elevator_id = attr.ib(default=-1)
 
 
@@ -57,19 +57,9 @@ class CommandProcessor:
             source_enum_name = Source(command.source).name
             action_enum_name = Action(command.action).name
             processor = getattr(self, f'{source_enum_name.lower()}_{action_enum_name.lower()}')
+            value = self.get_parsed_value(command.value, Action(command.action))
+            return processor(value=value, elevator_id=command.elevator_id)
 
-            if command.value:
-                value = self.get_parsed_value(command.value, Action(command.action))
-                if value and command.elevator_id > 0:
-                    return processor(value, command.elevator_id)
-                elif value:
-                    return processor(value)
-                else:
-                    print('Illegal value for this action')
-            elif command.elevator_id > -1:
-                return processor(command.elevator_id)
-            else:
-                return processor()
         except AttributeError as e:
             self.default_process()
         except TypeError as e:
@@ -102,62 +92,62 @@ class CommandProcessor:
                     return None
             except ValueError:
                 return None
-        return None
+        return value
 
     # Ниже обработчики запросов по парам Source, Action. Имена функций имеют вид <ключ_из_Source>_<ключ_из_Action>
     # Ключи переведелы в lowercase. Важно именовать по такому принципу,
     # потому что имена вызываемых методов определяются в рантайме в зависимости от комбинации Source и Action
-    def default_process(self):
+    def default_process(self, **kwargs):
         print('Sorry, that source cannot perform the action')
 
-    def smoke_sensor_get_readings(self, elevator_id: int):
+    def smoke_sensor_get_readings(self, elevator_id: int, **kwargs):
         if self.is_verbose:
             print('Getting readings from smoke sensor')
         return self.operator.is_smoked(elevator_id)
 
-    def weight_sensor_get_readings(self, elevator_id: int):
+    def weight_sensor_get_readings(self, elevator_id: int, **kwargs):
         if self.is_verbose:
             print('Getting readings from weight sensor')
         return self.operator.get_current_weight(elevator_id)
 
-    def position_sensor_get_readings(self, elevator_id: int):
+    def position_sensor_get_readings(self, elevator_id: int, **kwargs):
         """ Возвращает текущий этаж и направление кабины лифта """
         if self.is_verbose:
             print('Getting readings from position sensor')
         return self.operator.get_current_floor(elevator_id), self.operator.get_current_direction(elevator_id)
 
-    def doors_sensor_get_readings(self, elevator_id: int):
+    def doors_sensor_get_readings(self, elevator_id: int, **kwargs):
         if self.is_verbose:
             print('Getting readings from doors sensor')
         return self.operator.is_doors_open(elevator_id)
 
-    def light_sensor_get_readings(self, elevator_id: int):
+    def light_sensor_get_readings(self, elevator_id: int, **kwargs):
         if self.is_verbose:
             print('Getting readings from light sensor')
         return self.operator.is_light_on(elevator_id)
 
-    def dispatcher_open_doors(self, elevator_id: int):
+    def dispatcher_open_doors(self, elevator_id: int, **kwargs):
         if self.is_verbose:
             print('Doors opened by dispatcher')
         return self.operator.open_doors(elevator_id)
 
-    def dispatcher_close_doors(self, elevator_id: int):
+    def dispatcher_close_doors(self, elevator_id: int, **kwargs):
         if self.is_verbose:
             print('Doors closed by dispatcher')
         return self.operator.close_doors(elevator_id)
 
-    def dispatcher_move_to_floor(self, floor: int, elevator_id: int):
+    def dispatcher_move_to_floor(self, value: int, elevator_id: int, **kwargs):
         if self.is_verbose:
             print('"Move to floor" request is made by dispatcher')
-        return self.operator.move_to_floor(floor, elevator_id)
+        return self.operator.move_to_floor(value, elevator_id)
 
-    def dispatcher_set_weight(self, weight: int, elevator_id: int):
+    def dispatcher_set_weight(self, value: int, elevator_id: int, **kwargs):
         if self.is_verbose:
             print('Weight has been manually set by dispatcher')
-        self.operator.set_weight(weight, elevator_id)
+        self.operator.set_weight(value, elevator_id)
 
-    def dispatcher_set_light(self, on: bool, elevator_id: int):
-        if on:
+    def dispatcher_set_light(self, value: bool, elevator_id: int, **kwargs):
+        if value:
             if self.is_verbose:
                 print('Light has been manually set on by dispatcher')
             self.operator.turn_light_on(elevator_id)
@@ -166,8 +156,8 @@ class CommandProcessor:
                 print('Light has been manually set off by dispatcher')
             self.operator.turn_light_off(elevator_id)
 
-    def dispatcher_set_smoke(self, on: bool, elevator_id: int):
-        if on:
+    def dispatcher_set_smoke(self, value: bool, elevator_id: int, **kwargs):
+        if value:
             if self.is_verbose:
                 print('Smoke has been manually set on by dispatcher')
             self.operator.turn_smoke_on(elevator_id)
@@ -176,8 +166,8 @@ class CommandProcessor:
                 print('Smoke has been manually set off by dispatcher')
             self.operator.turn_smoke_off(elevator_id)
 
-    def dispatcher_set_barrier(self, on: bool, elevator_id: int):
-        if on:
+    def dispatcher_set_barrier(self, value: bool, elevator_id: int, **kwargs):
+        if value:
             if self.is_verbose:
                 print('Door barrier has been manually set on by dispatcher')
             self.operator.block_door(elevator_id)
@@ -186,56 +176,56 @@ class CommandProcessor:
                 print('Door barrier has been manually set off by dispatcher')
             self.operator.unblock_door(elevator_id)
 
-    def dispatcher_set_direction(self, direction: int, elevator_id: int):
+    def dispatcher_set_direction(self, value: int, elevator_id: int, **kwargs):
         if self.is_verbose:
             print('Direction has been manually set on by dispatcher')
-        self.operator.set_direction(direction, elevator_id)
+        self.operator.set_direction(value, elevator_id)
 
-    def dispatcher_intercom_request(self, elevator_id: int):
+    def dispatcher_intercom_request(self, elevator_id: int, **kwargs):
         if self.is_verbose:
             print('Intercom request was made by dispatcher')
         self.operator.call_dispatcher(elevator_id)
 
-    def dispatcher_intercom_respond(self, elevator_id: int):
+    def dispatcher_intercom_respond(self, elevator_id: int, **kwargs):
         if self.is_verbose:
             print('Intercom response was made by dispatcher')
         self.operator.call_dispatcher(elevator_id)
 
-    def dispatcher_call_from_floor(self, floor: int):
+    def dispatcher_call_from_floor(self, value: int, **kwargs):
         if self.is_verbose:
             print('"Call from floor" request is made by dispatcher')
 
         try:
-            return self.operator.process_call(floor)
+            return self.operator.process_call(value)
         except ValueError as e:
             print(f'Cannot call an elevator: {e}')
 
-    def system_open_doors(self, elevator_id: int):
+    def system_open_doors(self, elevator_id: int, **kwargs):
         if self.is_verbose:
             print('Doors opened by system')
         return self.operator.open_doors(elevator_id)
 
-    def system_close_doors(self, elevator_id: int):
+    def system_close_doors(self, elevator_id: int, **kwargs):
         if self.is_verbose:
             print('Doors closed by system')
         return self.operator.close_doors(elevator_id)
 
-    def system_move_to_floor(self, floor: int, elevator_id: int):
+    def system_move_to_floor(self, value: int, elevator_id: int, **kwargs):
         if self.is_verbose:
             print('"Move to floor" request is made by system')
-        return self.operator.move_to_floor(floor, elevator_id)
+        return self.operator.move_to_floor(value, elevator_id)
 
-    def system_set_weight(self, weight: int, elevator_id: int):
+    def system_set_weight(self, value: int, elevator_id: int, **kwargs):
         try:
             if self.is_verbose:
                 print('Weight has been manually set by system')
-            self.operator.set_weight(weight, elevator_id)
+            self.operator.set_weight(value, elevator_id)
         except ValueError as e:
             print(e)
 
-    def system_set_light(self, on: bool, elevator_id: int):
+    def system_set_light(self, value: bool, elevator_id: int, **kwargs):
         try:
-            if on:
+            if value:
                 if self.is_verbose:
                     print('Light has been manually set on by system')
                 self.operator.turn_light_on(elevator_id)
@@ -246,9 +236,9 @@ class CommandProcessor:
         except ValueError as e:
             print(e)
 
-    def system_set_smoke(self, on: bool, elevator_id: int):
+    def system_set_smoke(self, value: bool, elevator_id: int, **kwargs):
         try:
-            if on:
+            if value:
                 if self.is_verbose:
                     print('Smoke has been manually set on by system')
                 self.operator.turn_smoke_on(elevator_id)
@@ -259,9 +249,9 @@ class CommandProcessor:
         except ValueError as e:
             print(e)
 
-    def system_set_barrier(self, on: bool, elevator_id: int):
+    def system_set_barrier(self, value: bool, elevator_id: int, **kwargs):
         try:
-            if on:
+            if value:
                 if self.is_verbose:
                     print('Door barrier has been manually set on by system')
                 self.operator.block_door(elevator_id)
@@ -272,33 +262,33 @@ class CommandProcessor:
         except ValueError as e:
             print(e)
 
-    def system_set_direction(self, direction: int, elevator_id: int):
+    def system_set_direction(self, value: int, elevator_id: int, **kwargs):
         try:
             if self.is_verbose:
                 print('Direction has been manually set by system')
-            self.operator.set_direction(direction, elevator_id)
+            self.operator.set_direction(value, elevator_id)
         except ValueError as e:
             print(e)
 
-    def system_set_floor_count(self, count: int):
+    def system_set_floor_count(self, value: int, **kwargs):
         try:
-            self.operator.set_floor_count(count)
+            self.operator.set_floor_count(value)
             if self.is_verbose:
                 print('Floor count has been manually set by system')
         except ValueError as e:
             print(e)
 
-    def system_intercom_request(self, elevator_id: int):
+    def system_intercom_request(self, elevator_id: int, **kwargs):
         if self.is_verbose:
             print('Intercom request was made by system')
         self.operator.call_dispatcher(elevator_id)
 
-    def system_intercom_respond(self, elevator_id: int):
+    def system_intercom_respond(self, elevator_id: int, **kwargs):
         if self.is_verbose:
             print('Intercom response was made by system')
         self.operator.call_dispatcher(elevator_id)
 
-    def system_get_current_params(self, elevator_id: int):
+    def system_get_current_params(self, elevator_id: int, **kwargs):
         if self.is_verbose:
             print('Getting elevator parameters')
         return {
@@ -316,46 +306,46 @@ class CommandProcessor:
             'current_floor': self.operator.get_current_floor(elevator_id),
         }
 
-    def system_call_from_floor(self, floor: int):
+    def system_call_from_floor(self, value: int, **kwargs):
         if self.is_verbose:
             print('"Call from floor" request is made by system')
 
         try:
-            return self.operator.process_call(floor)
+            return self.operator.process_call(value)
         except ValueError as e:
             print(f'Cannot call an elevator: {e}')
 
-    def user_inside_open_doors(self, elevator_id: int):
+    def user_inside_open_doors(self, elevator_id: int, **kwargs):
         if self.is_verbose:
             print('Doors opened by a passenger inside')
         return self.operator.open_doors(elevator_id)
 
-    def user_inside_close_doors(self, elevator_id: int):
+    def user_inside_close_doors(self, elevator_id: int, **kwargs):
         if self.is_verbose:
             print('Doors a passenger inside')
         return self.operator.close_doors(elevator_id)
 
-    def user_inside_move_to_floor(self, floor: int, elevator_id: int):
+    def user_inside_move_to_floor(self, value: int, elevator_id: int, **kwargs):
         if self.is_verbose:
             print('"Move to floor" request is made by a passenger inside')
-        return self.operator.move_to_floor(floor, elevator_id)
+        return self.operator.move_to_floor(value, elevator_id)
 
     # Пока не совсем понятна логика запроса и ответа на голосовую связь.
-    def user_inside_intercom_request(self, elevator_id: int):
+    def user_inside_intercom_request(self, elevator_id: int, **kwargs):
         if self.is_verbose:
             print('Intercom request was made by a passenger inside')
         self.operator.call_dispatcher(elevator_id)
 
-    def user_outside_intercom_request(self, elevator_id: int):
+    def user_outside_intercom_request(self, elevator_id: int, **kwargs):
         if self.is_verbose:
             print('Intercom request was made by a passenger outside')
         self.operator.call_dispatcher(elevator_id)
 
-    def user_outside_call_from_floor(self, floor: int):
+    def user_outside_call_from_floor(self, value: int, **kwargs):
         if self.is_verbose:
             print('"Call from floor" request is made by a passenger outside')
 
         try:
-            return self.operator.process_call(floor)
+            return self.operator.process_call(value)
         except ValueError as e:
             print(f'Cannot call an elevator: {e}')
