@@ -1,6 +1,15 @@
+![Tests](https://github.com/ivanbukhtiyarov/elevators/actions/workflows/tests.yml/badge.svg?branch=dev)
 # Программный комплекс для управления лифтами в многоэтажном здании
 
 Целью проекта является разработка ПО, обеспечивающего корректную работу лифта без ограничения на типы домов, датчиков и лифтов. При разработке данного ПО будут учитываться такие показатели, как перегруженность, задымленность, используемость лифта в конкретный момент времени и корректность его работы при вызове его как снаружи, так и изнутри.
+
+## Документация
+* Бизнес описание системы (https://drive.google.com/drive/folders/1cDHx7bCVXwtuLOkt9YuAZxF44Kf2w2Y7);
+* План разработки (https://drive.google.com/drive/folders/1Im85qofHmpe4tDYiCVlpr6AObyWSmvt4);
+* План управления конфигурацией (https://drive.google.com/drive/folders/1yrpyNYwauyShXt0PZvC1kDCgQ2befjyV);
+* Спецификация требований (https://drive.google.com/drive/folders/10XZ8vTVIj6Tz8zw37J_XzLmv1JLv0vI8);
+* Стандарт на проектирование (https://drive.google.com/drive/folders/1foSS2aFdOeeL0v-_TQNXJJJ84VCAOdiu);
+* Стандарт на разработку требований (https://drive.google.com/drive/folders/1_QHxUhwq3-QRGTwV9uFw5NTaOPfd80l-).
 
 ## Режимы работы лифта
 
@@ -14,4 +23,3 @@
 
 ## Структура модулей
 
-![Alt Text](https://st.overclockers.ru/legacy/blog/367021/109626_O.gif)

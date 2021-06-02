@@ -1,4 +1,9 @@
-class ComboButton:
+from src.elevator import Elevator
+from src.operator import Operator
+from src.buttons.abstract_button import AbstractButton
+
+
+class ComboButton(AbstractButton):
     def __init__(self, elevator: Elevator, operator: Operator):
         pass
 
