@@ -6,6 +6,7 @@ from src.operator import Operator
 
 
 def test_simple():
+    '''Tests calls of default elevators methods from operator'''
     elevator = Elevator(
         tonnage=1000,
         floors_count=25,
@@ -29,3 +30,15 @@ def test_simple():
 
     with pytest.raises(Exception) as e_info:
         assert operator.open_doors(1)
+
+    operator.call_dispatcher(0)
+    assert operator.elevators_list[0].is_communication_on == True
+
+    operator.move_to_floor(20, 0)
+    assert operator.elevators_list[0].current_floor == 20
+
+    operator.turn_light_off(0)
+    assert operator.elevators_list[0].is_light_on == False
+
+    operator.turn_smoke_on(0)
+    assert operator.elevators_list[0].is_smoked == True
