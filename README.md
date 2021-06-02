@@ -23,3 +23,7 @@
 
 ## Структура модулей
 
+## Тестирование 
+![Матрица покрытия требований](matrix.png)
+(https://drive.google.com/drive/folders/1TDxknYfzzIzWyqWb5G0o7gXa6dYF779F).
+
